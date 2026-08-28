@@ -1,0 +1,3 @@
+-- DDL do esquema relacional (opcional: use se preferir separar o DDL do Python).
+-- Inclua relações, chaves primárias e estrangeiras, restrições de unicidade,
+-- domínios e demais restrições de integridade justificadas em docs/tp1_3.1.pdf.

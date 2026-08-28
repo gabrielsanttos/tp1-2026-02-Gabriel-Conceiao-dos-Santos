@@ -1,0 +1,17 @@
+# arquivo de entrada (baixar localmente, ver data/README.md)
+data/*.txt
+data/*.gz
+
+# saídas geradas
+out/*
+!out/.gitkeep
+
+# python
+__pycache__/
+*.py[cod]
+.venv/
+
+# postgres (caso use bind mount)
+postgres-data/
+
+.DS_Store
