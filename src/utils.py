@@ -23,7 +23,7 @@ def iter_produtos(caminho):
 
 def parse_produto(bloco: str) -> dict:
     produto = {
-         "id": None,
+        "id": None,
         "asin": None,
         "title": None,
         "group": None,
@@ -40,9 +40,9 @@ def parse_produto(bloco: str) -> dict:
     while i < len(linhas):
         linha = linhas[i]
         if linha.startswith("Id:"):
-            produto["Id"] = int(linha.split(":",1)[1].strip())
+            produto["id"] = int(linha.split(":",1)[1].strip())
         elif linha.startswith("ASIN:"):
-            produto["ASIN"] = linha.split(":", 1)[1].strip()
+            produto["asin"] = linha.split(":", 1)[1].strip()
         elif linha.startswith("  title:"):
             produto["title"] = linha.split(":", 1)[1].strip()
         elif linha.startswith("  group:"):
@@ -53,7 +53,7 @@ def parse_produto(bloco: str) -> dict:
         elif linha.startswith("  similar:"):
             partes = linha.split()
             produto["similar"] = int(partes[1])
-            produto["similares"] = partes[2:]
+            produto["lista_similares"] = partes[2:]
         elif linha.startswith("  categories:"):
             n_categorias = int(linha.split(":", 1)[1].strip())
             categorias = []

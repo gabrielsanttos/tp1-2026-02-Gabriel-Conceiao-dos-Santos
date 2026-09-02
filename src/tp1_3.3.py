@@ -10,9 +10,52 @@ from db import add_db_args, connect
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 
+SQL_1 = """WITH top_maiores AS (
+    -- 1. Busca os 5 comentários mais úteis e com MAIOR avaliação
+    SELECT 
+        'Mais Úteis / Maiores Notas' AS tipo_grupo,
+        review_id,
+        product_id,
+        rating,
+        votes,
+        helpful
+    FROM reviews
+    WHERE product_id = %s
+    ORDER BY 
+        helpful DESC, -- Critério 1: Mais votos úteis primeiro
+        rating DESC   -- Critério 2 (Desempate): Maior nota primeiro
+    LIMIT 5
+),
+top_menores AS (
+    -- 2. Busca os 5 comentários mais úteis e com MENOR avaliação
+    SELECT 
+        'Mais Úteis / Menores Notas' AS tipo_grupo,
+        review_id,
+        product_id,
+        rating,
+        votes,
+        helpful
+    FROM reviews
+    WHERE product_id = %s
+      -- Evita duplicar registros caso o produto tenha menos de 10 reviews no total:
+      AND review_id NOT IN (SELECT review_id FROM top_maiores)
+    ORDER BY 
+        helpful DESC, -- Critério 1: Mais votos úteis primeiro
+        rating ASC    -- Critério 2 (Desempate): Menor nota primeiro
+    LIMIT 5
+)
+-- 3. Une os dois resultados em uma única listagem
+SELECT * FROM top_maiores
+UNION ALL
+SELECT * FROM top_menores;
+
+
+
+"""
+
 # Cada consulta: (arquivo de saída, título, SQL). Use %s para o ASIN quando necessário.
 CONSULTAS = [
-    ("q1_reviews.csv", "5 comentários mais úteis com maior e menor avaliação", ""),
+    ("q1_reviews.csv", "5 comentários mais úteis com maior e menor avaliação", SQL_1""),
     ("q2_similares.csv", "Produtos similares com melhor salesrank", ""),
     ("q3_evolucao_avaliacoes.csv", "Evolução diária das médias de avaliação", ""),
     ("q4_top_vendas_grupo.csv", "10 produtos líderes de venda por grupo", ""),

@@ -22,7 +22,7 @@ services:
         condition: service_healthy
     volumes:
       - ./src:/app/src
-      - ./src:/app/sql
+      - ./sql:/app/sql
       - ./data:/data
       - ./out:/app/out
     working_dir: /app
