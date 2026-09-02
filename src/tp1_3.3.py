@@ -10,54 +10,89 @@ from db import add_db_args, connect
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 
-SQL_1 = """WITH top_maiores AS (
-    -- 1. Busca os 5 comentários mais úteis e com MAIOR avaliação
+SQL_1 = """WITH produto AS (
+    SELECT product_id FROM products WHERE asin = %s
+),
+top_maiores AS (
     SELECT 
         'Mais Úteis / Maiores Notas' AS tipo_grupo,
         review_id,
         product_id,
+        review_date,
+        customer_id,
         rating,
         votes,
         helpful
     FROM reviews
-    WHERE product_id = %s
+    WHERE product_id = (SELECT product_id FROM produto)
     ORDER BY 
-        helpful DESC, -- Critério 1: Mais votos úteis primeiro
-        rating DESC   -- Critério 2 (Desempate): Maior nota primeiro
+        helpful DESC,
+        rating DESC
     LIMIT 5
 ),
 top_menores AS (
-    -- 2. Busca os 5 comentários mais úteis e com MENOR avaliação
     SELECT 
         'Mais Úteis / Menores Notas' AS tipo_grupo,
         review_id,
         product_id,
+        review_date,
+        customer_id,
         rating,
         votes,
         helpful
     FROM reviews
-    WHERE product_id = %s
-      -- Evita duplicar registros caso o produto tenha menos de 10 reviews no total:
+    WHERE product_id = (SELECT product_id FROM produto)
       AND review_id NOT IN (SELECT review_id FROM top_maiores)
     ORDER BY 
-        helpful DESC, -- Critério 1: Mais votos úteis primeiro
-        rating ASC    -- Critério 2 (Desempate): Menor nota primeiro
+        helpful DESC,
+        rating ASC
     LIMIT 5
 )
--- 3. Une os dois resultados em uma única listagem
 SELECT * FROM top_maiores
 UNION ALL
 SELECT * FROM top_menores;
+"""
 
+SQL_2 = """WITH produto AS (
+    SELECT product_id, salesrank
+    FROM products
+    WHERE asin = %s
+)
+SELECT
+    p2.asin AS similar_asin,
+    p2.title,
+    p2.product_group,
+    p2.salesrank
+FROM similar_products sp
+JOIN produto ON sp.product_id = produto.product_id
+JOIN products p2 ON p2.asin = sp.similar_asin
+WHERE produto.salesrank IS NOT NULL
+  AND p2.salesrank IS NOT NULL
+  AND p2.salesrank < produto.salesrank
+ORDER BY p2.salesrank ASC; 
 
+"""
+
+SQL_3 = """WITH produto AS (SELECT product_id FROM products WHERE asin = %s),
+medias_diarias AS (
+        SELECT review_date, COUNT(*) AS total_reviews, AVG(rating) AS media_dia
+        FROM reviews
+        WHERE product_id = (SELECT product_id FROM produto)
+        GROUP BY review_date
+        ORDER BY review_date
+)
+SELECT review_date, total_reviews, media_dia,
+        AVG(media_dia) OVER (ORDER BY review_date ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS media_acumulada
+FROM medias_diarias
+ORDER BY review_date;  
 
 """
 
 # Cada consulta: (arquivo de saída, título, SQL). Use %s para o ASIN quando necessário.
 CONSULTAS = [
-    ("q1_reviews.csv", "5 comentários mais úteis com maior e menor avaliação", SQL_1""),
-    ("q2_similares.csv", "Produtos similares com melhor salesrank", ""),
-    ("q3_evolucao_avaliacoes.csv", "Evolução diária das médias de avaliação", ""),
+    ("q1_reviews.csv", "5 comentários mais úteis com maior e menor avaliação", SQL_1),
+    ("q2_similares.csv", "Produtos similares com melhor salesrank", SQL_2),
+    ("q3_evolucao_avaliacoes.csv", "Evolução diária das médias de avaliação", SQL_3),
     ("q4_top_vendas_grupo.csv", "10 produtos líderes de venda por grupo", ""),
     ("q5_produtos_media_uteis_positivas.csv", "10 produtos com maior média de avaliações úteis positivas", ""),
     ("q6_categorias_media_uteis_positivas.csv", "5 categorias com maior média de avaliações úteis positivas", ""),
