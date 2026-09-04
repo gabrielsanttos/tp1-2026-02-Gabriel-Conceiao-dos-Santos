@@ -76,7 +76,7 @@ ORDER BY p2.salesrank ASC;
 SQL_3 = """WITH produto AS (SELECT product_id FROM products WHERE asin = %s),
 medias_diarias AS (
         SELECT review_date, COUNT(*) AS total_reviews, AVG(rating) AS media_dia
-        FROM reviews
+         FROM reviews
         WHERE product_id = (SELECT product_id FROM produto)
         GROUP BY review_date
         ORDER BY review_date
@@ -88,12 +88,28 @@ ORDER BY review_date;
 
 """
 
+SQL_4 = """ WITH top_por_grupo AS (
+    SELECT product_group,
+            product_id,
+            asin,
+            title,
+            salesrank,
+            ROW_NUMBER() OVER (PARTITION BY product_group ORDER BY salesrank ASC) AS numero_linha
+    FROM products
+    WHERE salesrank IS NOT NULL AND salesrank > 0)
+        SELECT *
+        FROM top_por_grupo
+        WHERE numero_linha <=10
+        ORDER BY product_group, numero_linha;
+
+"""
+
 # Cada consulta: (arquivo de saída, título, SQL). Use %s para o ASIN quando necessário.
 CONSULTAS = [
     ("q1_reviews.csv", "5 comentários mais úteis com maior e menor avaliação", SQL_1),
     ("q2_similares.csv", "Produtos similares com melhor salesrank", SQL_2),
     ("q3_evolucao_avaliacoes.csv", "Evolução diária das médias de avaliação", SQL_3),
-    ("q4_top_vendas_grupo.csv", "10 produtos líderes de venda por grupo", ""),
+    ("q4_top_vendas_grupo.csv", "10 produtos líderes de venda por grupo", SQL_4),
     ("q5_produtos_media_uteis_positivas.csv", "10 produtos com maior média de avaliações úteis positivas", ""),
     ("q6_categorias_media_uteis_positivas.csv", "5 categorias com maior média de avaliações úteis positivas", ""),
     ("q7_clientes_comentarios_grupo.csv", "10 clientes que mais comentaram por grupo", ""),

@@ -15,3 +15,5 @@ __pycache__/
 postgres-data/
 
 .DS_Store
+
+.vscode/
